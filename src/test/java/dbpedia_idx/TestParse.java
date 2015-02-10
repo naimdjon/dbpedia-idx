@@ -9,10 +9,10 @@ public class TestParse {
 
     @Test
     public void testParse() throws Exception {
-        new NTParser().parseLabel(triple -> {
-            assertEquals("AccessibleComputing", triple.subject);
+        new NTParser(null).parseLabel(triple -> {
+            assertEquals("accessiblecomputing", triple.subject);
             assertEquals("label", triple.predicate);
-            assertEquals("AccessibleComputing", triple.object);
+            assertEquals("accessiblecomputing", triple.object);
         }, sample);
     }
 

@@ -14,6 +14,11 @@ import java.util.regex.Pattern;
 public class NTParser {
     //final Pattern labelPattern1=Pattern.compile("\\s*?<(.*?)>\\s+<(.*?)>\\s+\"(.*?)\".*");
     final Pattern labelPattern = Pattern.compile("\\s*?<http://dbpedia.org/resource/(.*?)>\\s+<http://www.w3.org/2000/01/rdf-schema#(.*?)>\\s+\"(.*?)\".*");
+    private final String inputFile;
+
+    public NTParser(final String inputFile) {
+        this.inputFile = inputFile;
+    }
 
     public void parseLabel(final TripleProcessor tripleProcessor, final String content) throws Exception {
         Splitter.on(CharMatcher.anyOf("\n"))
@@ -26,22 +31,18 @@ public class NTParser {
         return line -> {
             final Matcher matcher = labelPattern.matcher(line);
             if (matcher.find()) {
-                tripleProcessor.process(new Triple(matcher.group(1), matcher.group(2), matcher.group(3)));
+                tripleProcessor.process(new Triple(matcher.group(1).toLowerCase(), matcher.group(2).toLowerCase(), matcher.group(3).toLowerCase()));
             } else {
                 System.err.println("No match for line " + line);
             }
         };
     }
 
-    public static void main(String[] args) throws Exception {
-        new NTParser().importLabels();
-    }
-
     MongoHelper mongo = new MongoHelper();
 
     public void importLabels() throws Exception {
 	    System.out.println("importing labels...");
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("/Users/takhirov/Downloads/labels_en.nt")))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile)))) {
             final StringBuilder buffer = new StringBuilder();
             String line = null;
             int counter = 0;
@@ -49,12 +50,13 @@ public class NTParser {
             while ((line = reader.readLine()) != null) {
                 if (line.charAt(0) == '#') continue;
                 buffer.append(line).append("\n");
-                if (++counter == 10000) {
+                if (++counter == 10_000L) {
                     parseLabel(triple -> {
                         totalCounter.incrementAndGet();
                         mongo.insertTripleLabel(triple);
                     }, buffer.toString());
-                    System.out.print(totalCounter.get() + "\r");
+                    System.out.format("%,8d", totalCounter.get());
+                    System.out.print("\r");
                     counter = 0;
                     buffer.delete(0, buffer.length());
                 }
