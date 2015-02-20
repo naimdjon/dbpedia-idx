@@ -11,12 +11,12 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class NTParser {
+public class DBPediaLabelParser {
     //final Pattern labelPattern1=Pattern.compile("\\s*?<(.*?)>\\s+<(.*?)>\\s+\"(.*?)\".*");
     final Pattern labelPattern = Pattern.compile("\\s*?<http://dbpedia.org/resource/(.*?)>\\s+<http://www.w3.org/2000/01/rdf-schema#(.*?)>\\s+\"(.*?)\".*");
     private final String inputFile;
 
-    public NTParser(final String inputFile) {
+    public DBPediaLabelParser(final String inputFile) {
         this.inputFile = inputFile;
     }
 

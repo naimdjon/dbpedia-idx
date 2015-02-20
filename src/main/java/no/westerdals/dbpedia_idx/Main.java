@@ -7,6 +7,6 @@ public class Main {
         if (Environment.isLinux()) {
             inputFile="/home/takhirov/Downloads/labels_en.nt";
         }
-        new NTParser(inputFile).importLabels();
+        new DBPediaLabelParser(inputFile).importLabels();
     }
 }
