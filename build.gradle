@@ -13,7 +13,7 @@ dependencies {
     compile 'com.google.guava:guava:18.0'
     compile 'org.apache.lucene:lucene-core:5.0.0'
     compile 'org.apache.lucene:lucene-analyzers-common:5.0.0'
+    compile 'org.apache.lucene:lucene-queryparser:5.0.0'
     compile 'org.apache.lucene:lucene-core:5.0.0:sources'
-
     testCompile 'junit:junit:4.12'
 }
