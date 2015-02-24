@@ -9,7 +9,7 @@ public class Environment {
     }
 
     public static String getIndexDir() {
-        String indexDir="/Users/taknai/NEEL_LUCENE_INDEX";
+        String indexDir="/Users/takhirov/NEEL_LUCENE_INDEX";
         if (Environment.isLinux()) {
             indexDir=indexDir.replaceFirst("Users","home").replaceFirst("takhirov","taknai");
         }
