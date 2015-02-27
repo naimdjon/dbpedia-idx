@@ -50,6 +50,14 @@ public class Searcher implements AutoCloseable {
         }
     }
 
+    public TopDocs searchAll(final String queryString) throws ParseException {
+        try {
+            return searcher.search(new QueryParser("title", analyzer).parse(queryString), null,Integer.MAX_VALUE );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void close() throws Exception {
         reader.close();
