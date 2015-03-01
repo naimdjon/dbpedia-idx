@@ -1,5 +1,6 @@
 package no.westerdals.dbpedia_idx.index;
 
+import com.google.common.base.Predicate;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -20,9 +21,9 @@ import static org.apache.lucene.store.FSDirectory.open;
 
 public class Searcher implements AutoCloseable {
 
-    private  IndexSearcher searcher;
+    private IndexSearcher searcher;
     private Analyzer analyzer;
-    private IndexReader reader;
+    IndexReader reader;
 
     private Searcher(String indexPath) {
         try {
@@ -42,17 +43,15 @@ public class Searcher implements AutoCloseable {
         return reader.document(i);
     }
 
-    public TopDocs search(final String queryString) throws ParseException {
-        try {
-            return searcher.search(new QueryParser("title", analyzer).parse(queryString), null, 100);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    public void visitAllDocs(final Predicate<DocumentInformation> visitor) throws ParseException, IOException {
+        for (int i = 0; i < reader.maxDoc(); i++) {
+            visitor.apply(new DocumentInformation(reader.document(i).get("title_md5"), i));
         }
     }
 
     public TopDocs searchAll(final String queryString) throws ParseException {
         try {
-            return searcher.search(new QueryParser("title", analyzer).parse(queryString), null,Integer.MAX_VALUE );
+            return searcher.search(new QueryParser("title", analyzer).parse(queryString), null, Integer.MAX_VALUE);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -63,15 +62,18 @@ public class Searcher implements AutoCloseable {
         reader.close();
     }
 
-    public Document findDocument(final Term term) {
+
+    public Document search(final Term title_md5) {
         try {
-            final TopDocs docs = searcher.search(new TermQuery(term), 1);
-            if (docs.scoreDocs.length == 0) {
-                return null;
+            final TopDocs topDocs = searcher.search(new TermQuery(title_md5), 2);
+            if (topDocs.totalHits > 1) {
+                throw new RuntimeException("Duplicate ids:" + title_md5);
+            } else if (topDocs.totalHits == 1) {
+                return doc(topDocs.scoreDocs[0].doc);
             }
-            return doc(docs.scoreDocs[0].doc);
+            return null;
         } catch (IOException e) {
-            throw new RuntimeException(term+" not found",e);
+            throw new RuntimeException(e);
         }
     }
 }
