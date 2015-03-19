@@ -1,18 +1,18 @@
 package dbpedia_idx;
 
-import no.westerdals.dbpedia_idx.NTParser;
+import no.westerdals.dbpedia_idx.DBPediaLabelParser;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestParse {
+public class ParseTest {
 
     @Test
     public void testParse() throws Exception {
-        new NTParser(null).parseLabel(triple -> {
+        new DBPediaLabelParser(null).parseLabel(triple -> {
             assertEquals("accessiblecomputing", triple.subject);
             assertEquals("label", triple.predicate);
-            assertEquals("accessiblecomputing", triple.object);
+            assertEquals("accessiblecomputing", triple.property);
         }, sample);
     }
 
