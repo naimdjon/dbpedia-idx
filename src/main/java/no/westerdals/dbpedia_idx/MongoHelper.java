@@ -23,6 +23,6 @@ public class MongoHelper {
     }
 
     public void insertTripleLabel(final Triple triple) {
-        labels.insert(new BasicDBObject("s",triple.subject).append("o",triple.object));
+        labels.insert(new BasicDBObject("s",triple.subject).append("o",triple.property));
     }
 }

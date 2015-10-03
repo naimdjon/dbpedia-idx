@@ -11,12 +11,11 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class DBPediaLabelParser {
-    //final Pattern labelPattern1=Pattern.compile("\\s*?<(.*?)>\\s+<(.*?)>\\s+\"(.*?)\".*");
+public class TitleIndexer {
     final Pattern labelPattern = Pattern.compile("\\s*?<http://dbpedia.org/resource/(.*?)>\\s+<http://www.w3.org/2000/01/rdf-schema#(.*?)>\\s+\"(.*?)\".*");
     private final String inputFile;
 
-    public DBPediaLabelParser(final String inputFile) {
+    public TitleIndexer(final String inputFile) {
         this.inputFile = inputFile;
     }
 
@@ -38,10 +37,42 @@ public class DBPediaLabelParser {
         };
     }
 
-    MongoHelper mongo = new MongoHelper();
+    SolrBackend solrBackend = new SolrBackend();
 
-    public void importLabels() throws Exception {
-	    System.out.println("importing labels...");
+    public void importLabelsToSolr() throws Exception {
+        System.out.println("importing labels to Solr...");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile)))) {
+            final StringBuilder buffer = new StringBuilder();
+            String line = null;
+            int counter = 0;
+            final AtomicLong totalCounter = new AtomicLong(0L);
+            while ((line = reader.readLine()) != null) {
+                if (line.charAt(0) == '#') continue;
+                buffer.append(line).append("\n");
+                if (++counter == 10_000L) {
+                    parseLabel(triple -> {
+                        totalCounter.incrementAndGet();
+                        solrBackend.insertTripleLabel(triple);
+                    }, buffer.toString());
+                    System.out.format("%,8d", totalCounter.get());
+                    System.out.print("\r");
+                    counter = 0;
+                    buffer.delete(0, buffer.length());
+                }
+            }
+            parseLabel(triple -> {
+                solrBackend.insertTripleLabel(triple);
+                totalCounter.incrementAndGet();
+            }, buffer.toString());
+            System.out.println("parsed::" + totalCounter.get());
+        }
+    }
+
+
+    final MongoHelper mongo = new MongoHelper();
+
+    public void importLabelsToMongo() throws Exception {
+        System.out.println("importing labels...");
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile)))) {
             final StringBuilder buffer = new StringBuilder();
             String line = null;
@@ -67,6 +98,21 @@ public class DBPediaLabelParser {
             }, buffer.toString());
             System.out.println("parsed::" + totalCounter.get());
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        boolean useMongo = false;
+        for (String arg : args) {
+            if (arg.equals("-m")) {
+                useMongo = true;
+            }
+        }
+        final TitleIndexer labelsImporter = new TitleIndexer(Environment.getInputFile("labels"));
+        if (useMongo) {
+            labelsImporter.importLabelsToMongo();
+        } else
+            labelsImporter.importLabelsToSolr();
+
     }
 
 }
