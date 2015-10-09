@@ -3,7 +3,13 @@ apply plugin: 'application'
 
 mainClassName = System.getProperty("mainClassName") ?: "no.westerdals.dbpedia_idx.Main"
 version = '0.1'
-
+run {
+    if (System.getProperty('exec.args') != null) {
+        args System.getProperty('exec.args').split()
+    }
+    maxHeapSize = "6g"
+    jvmArgs = ["-Xmx10g", "-Xms8g"]
+}
 repositories {
     mavenCentral()
 }
@@ -11,9 +17,8 @@ repositories {
 dependencies {
     compile 'org.mongodb:mongo-java-driver:2.13.0'
     compile 'com.google.guava:guava:18.0'
-    compile 'org.apache.lucene:lucene-core:5.0.0'
-    compile 'org.apache.lucene:lucene-analyzers-common:5.0.0'
-    compile 'org.apache.lucene:lucene-queryparser:5.0.0'
-    compile 'org.apache.lucene:lucene-core:5.0.0:sources'
+    compile 'org.elasticsearch:elasticsearch:1.7.2'
     testCompile 'junit:junit:4.12'
+    testCompile 'org.mockito:mockito-all:1.10.19'
+    testCompile 'org.assertj:assertj-core:3.2.0'
 }
