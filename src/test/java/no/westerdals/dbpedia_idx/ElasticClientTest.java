@@ -3,6 +3,7 @@ package no.westerdals.dbpedia_idx;
 import com.google.common.collect.ImmutableSet;
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.client.Client;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -11,7 +12,12 @@ import static org.mockito.Mockito.mock;
 
 public class ElasticClientTest {
 
-    private ElasticClient elasticClient = new ElasticClient("testindex", mock(ScheduledExecutorService.class), mock(Client.class));
+    private ElasticClient elasticClient;
+
+    @Before
+    public void setUp() {
+        elasticClient = new ElasticClient("testindex", mock(ScheduledExecutorService.class), mock(Client.class));
+    }
 
     @Test
     public void createTripleObject_noCategory() throws Exception {
