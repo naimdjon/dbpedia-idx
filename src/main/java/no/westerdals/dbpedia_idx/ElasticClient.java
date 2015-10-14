@@ -5,14 +5,16 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 public class ElasticClient {
@@ -20,12 +22,25 @@ public class ElasticClient {
     private final String collection;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    public ElasticClient(String index) {
+    private final int batchSize = 10000;
+    private final int bulkSize = 1000;
+
+    private final Queue<Triple> indexingQueue = new ConcurrentLinkedQueue<>();
+
+    public static ElasticClient createDefaultClientForIndex(String index) {
+        return new ElasticClient(
+                index
+                , newSingleThreadScheduledExecutor()
+                , new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300))
+        );
+    }
+
+    public ElasticClient(String index, ScheduledExecutorService executorService, Client client) {
         this.collection = index;
-        client = new TransportClient().addTransportAddress(new InetSocketTransportAddress("localhost", 9300));
+        this.client = client;
         Runtime.getRuntime().addShutdownHook(new Thread(client::close));
-        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        scheduledExecutorService.scheduleWithFixedDelay(() -> {
+        this.scheduledExecutorService = executorService;
+        this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
                 sendBulk();
             } catch (Exception e) {
@@ -34,10 +49,8 @@ public class ElasticClient {
         }, 123L, 1000L, TimeUnit.MILLISECONDS);
     }
 
-    private final Queue<Triple> indexingQueue = new ConcurrentLinkedQueue<>();
-
-    public void insertTripleLabel(Triple triple) {
-        indexingQueue.add(triple);
+    public void insertTripleLabel(Triple entity) {
+        indexingQueue.add(entity);
     }
 
     private void sendBulk() {
@@ -45,13 +58,13 @@ public class ElasticClient {
 
         while (!indexingQueue.isEmpty()) {
             int i = 0;
-            while (i++ < 10000) {
-                final Triple triple = indexingQueue.poll();
-                if (triple == null) {
+            while (i++ < batchSize) {
+                final Triple Triple = indexingQueue.poll();
+                if (Triple == null) {
                     break;
                 }
-                addDocumentToBulk(bulkRequest, triple);
-                if (i % 1000 == 0) {
+                addDocumentToBulk(bulkRequest, Triple);
+                if (i % bulkSize == 0) {
                     sendBulkRequest(bulkRequest);
                     bulkRequest = client.prepareBulk();
                 }
@@ -60,7 +73,7 @@ public class ElasticClient {
         }
     }
 
-    private void sendBulkRequest(BulkRequestBuilder bulkRequest) {
+    private void sendBulkRequest(final BulkRequestBuilder bulkRequest) {
         if (bulkRequest.numberOfActions() <= 0) {
             return;
         }
@@ -74,16 +87,24 @@ public class ElasticClient {
         try {
             bulkRequest.add(
                     client.prepareIndex("dbpedia", collection, triple.getMD5Title())
-                            .setSource(jsonBuilder()
-                                            .startObject()
-                                            .field("subject", triple.subject)
-                                            .field("subjectLower", triple.subjectLowerCased)
-                                            .field("value", triple.property)
-                                            .endObject()
-                            ));
+                            .setSource(createIndexEntry(triple)));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public XContentBuilder createIndexEntry(Triple triple) throws IOException {
+        XContentBuilder builder = jsonBuilder()
+                .startObject()
+                .field("entityId", triple.subject)
+                .field("subjectLower", triple.subjectLowerCased);
+        final Set<Category> categories = triple.getCategories();
+        if (categories.isEmpty()) {
+            builder = builder.field("value", triple.property);
+        } else {
+            builder = builder.array("value", categories.toArray(new Category[categories.size()]));
+        }
+        return builder.endObject();
     }
 
     public void shutdown() {
@@ -97,4 +118,5 @@ public class ElasticClient {
         }
         scheduledExecutorService.shutdown();
     }
+
 }
