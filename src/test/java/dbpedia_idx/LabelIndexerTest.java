@@ -24,20 +24,20 @@ public class LabelIndexerTest {
     }
 
     @Test
-    public void counterIncremented() throws Exception {
+    public void processLine_counterIncremented() throws Exception {
         final int counter = new LabelIndexer(null, mock).processLine("test", 1);
         assertThat(counter).isEqualTo(2);
     }
 
     @Test
-    public void commentsNotProcessed() {
+    public void processLine_commentsNotProcessed() {
         final int counter = new LabelIndexer(null, mock).processLine("#tets", 0);
         assertThat(counter).isEqualTo(0);
         verify(mock, times(0)).insertTripleLabel(any());
     }
 
     @Test
-    public void simple() throws Exception {
+    public void processLine_simple() throws Exception {
         processLineAndAssert("<http://dbpedia.org/resource/AccessibleComputing> <http://www.w3.org/2000/01/rdf-schema#label> \"AccessibleComputing\"@en ."
                 , "AccessibleComputing"
                 , "accessiblecomputing"
@@ -45,13 +45,13 @@ public class LabelIndexerTest {
     }
 
     @Test
-    public void subjectContainsSlash() throws Exception {
+    public void processLine_subjectContainsSlash() throws Exception {
         processLineAndAssert("<http://dbpedia.org/resource/Andorra/Transnational_issues> <http://www.w3.org/2000/01/rdf-schema#label> \"Andorra/Transnational issues\"@en ."
                 , "Andorra/Transnational_issues"
                 , "andorra/transnational issues");
     }
 
-    public void processLineAndAssert(String line, final String wantedSubject, final String wantedValue) throws Exception {
+    void processLineAndAssert(String line, final String wantedSubject, final String wantedValue) throws Exception {
         new LabelIndexer(null, mock).processLine(line, 1);
         verify(mock, times(1)).insertTripleLabel(any());
         verify(mock).insertTripleLabel(argThat(new ArgumentMatcher<Triple>() {

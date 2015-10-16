@@ -29,7 +29,7 @@ public class ArticleCategoriesIndexerTest {
 
 
     @Test
-    public void simpleLine() throws Exception {
+    public void processLine_simpleLine() throws Exception {
         processLineAndAssert(
                 "Albedo"
                 , "climate_forcing"
